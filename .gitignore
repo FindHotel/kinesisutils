@@ -1,0 +1,8 @@
+.env
+.lambda
+.tox
+.coverage
+__pycache__
+*.egg-info
+.cache
+*.pyc
