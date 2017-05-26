@@ -30,7 +30,7 @@ At the moment there is only one utility implemented: a Python generator that rea
 ```
 import json
 
-from kinesisutils import KinesisGenerator
+from kinesisutils.kinesisutils import KinesisGenerator
 
 # Hit Kinesis with at most 10 requests per second, usin json.loads to
 # deserialize the Kinesis records (the default). You could deactivate record
@@ -44,7 +44,7 @@ for rec in kg:
 By default the generator will keep pulling records from Kinesis for 60 seconds. You can customize this timeout if you want:
 
 ```
-from kinesisutils import KinesisGenerator
+from kinesisutils.kinesisutils import KinesisGenerator
 
 kg = KinesisGenerator("stream_name", timeout=30)
 
