@@ -2,3 +2,7 @@
 
 __version__ = "0.0.1"
 __author__ = "German Gomez-Herrero"
+
+# Public interface
+
+from kinesisutils.kinesisutils import KinesisGenerator

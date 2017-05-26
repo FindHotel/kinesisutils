@@ -11,6 +11,10 @@ PYTHON := .env/bin/python
 install: .env
 	$(PIP) install -e .
 
+# install dev dependencies, create layers directory
+develop: .env
+	.env/bin/pip install -r requirements-dev.txt
+
 # run unit tests
 test: .env
 	$(PIP) install tox
@@ -24,3 +28,7 @@ testi: .env
 # remove .env
 clean:
 	rm -rf .env
+
+# upload to Pypi
+pypi: develop
+	$(PYTHON) setup.py sdist upload

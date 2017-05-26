@@ -1,0 +1,8 @@
+# dev utilities
+ipython
+ipdb
+pdbpp
+pypandoc
+
+-e .
+
