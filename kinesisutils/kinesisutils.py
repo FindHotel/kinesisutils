@@ -80,19 +80,12 @@ class KinesisGenerator(object):
         self.timeout = timeout
         self.rqs = rqs
         self.des = des
+        self.consumers = None
 
-        num_consumers = min(
+        self.num_consumers = min(
             multiprocessing.cpu_count() * 2,
             self.shard_count,
             max_consumers)
-        self.consumers = [
-            KinesisConsumer(self.tasks, self.results, self.limit, self.des,
-                            self.rqs/num_consumers)
-            for _ in range(num_consumers)]
-
-        for sid in self.get_shard_iterators():
-            self.tasks.put(Task(sid, self.limit))
-
 
     @property
     def shard_ids(self):
@@ -128,6 +121,14 @@ class KinesisGenerator(object):
 
     def __iter__(self):
         """Generate records from the Kinesis stream."""
+        self.consumers = [
+            KinesisConsumer(self.tasks, self.results, self.limit, self.des,
+                            self.rqs/self.num_consumers)
+            for _ in range(self.num_consumers)]
+
+        for sid in self.get_shard_iterators():
+            self.tasks.put(Task(sid, self.limit))
+
         self._start()
         t0 = time.time()
         while (time.time() - t0) < self.timeout:
