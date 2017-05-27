@@ -70,7 +70,7 @@ class KinesisGenerator(object):
     """Generate records from an AWS Kinesis stream."""
 
     def __init__(self, stream_name, timeout=60, limit=100, max_consumers=50,
-                 des=json.loads, rqs=10):
+                 des=json.loads, iterator_type="LATEST", rqs=10):
         """Initialize."""
 
         self.stream_name = stream_name
@@ -81,11 +81,20 @@ class KinesisGenerator(object):
         self.rqs = rqs
         self.des = des
         self.consumers = None
+        self.iterator_type = iterator_type
 
-        self.num_consumers = min(
+        num_consumers = min(
             multiprocessing.cpu_count() * 2,
             self.shard_count,
             max_consumers)
+
+        self.consumers = [
+            KinesisConsumer(self.tasks, self.results, self.limit, self.des,
+                            self.rqs/num_consumers)
+            for _ in range(num_consumers)]
+
+        for sid in self.get_shard_iterators():
+            self.tasks.put(Task(sid, self.limit))
 
     @property
     def shard_ids(self):
@@ -98,14 +107,13 @@ class KinesisGenerator(object):
         """The stream shard count."""
         return len(self.shard_ids)
 
-    def get_shard_iterators(self, shard_ids=None, type="LATEST"):
+    def get_shard_iterators(self):
         """Get a list of shard iterators, one per shard in the stream."""
-        if shard_ids is None:
-            shard_ids = self.shard_ids
         return [client.get_shard_iterator(
             StreamName=self.stream_name,
             ShardId=sid,
-            ShardIteratorType=type)["ShardIterator"] for sid in shard_ids]
+            ShardIteratorType=self.iterator_type)["ShardIterator"]
+            for sid in self.shard_ids]
 
     def _start(self):
         """Start the consumers."""
@@ -121,14 +129,6 @@ class KinesisGenerator(object):
 
     def __iter__(self):
         """Generate records from the Kinesis stream."""
-        self.consumers = [
-            KinesisConsumer(self.tasks, self.results, self.limit, self.des,
-                            self.rqs/self.num_consumers)
-            for _ in range(self.num_consumers)]
-
-        for sid in self.get_shard_iterators():
-            self.tasks.put(Task(sid, self.limit))
-
         self._start()
         t0 = time.time()
         while (time.time() - t0) < self.timeout:
