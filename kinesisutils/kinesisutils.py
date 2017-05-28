@@ -22,9 +22,10 @@ client = boto3.client("kinesis")
 
 class KinesisConsumer(multiprocessing.Process):
 
-    def __init__(self, task_queue, result_queue, limit, des, rqs):
+    def __init__(self, task_queue, result_queue, limit, des, rqs, preprocess):
         multiprocessing.Process.__init__(self)
         self.limit = limit
+        self.preprocess = preprocess
         self.task_queue = task_queue
         self.result_queue = result_queue
         self.des = des
@@ -37,10 +38,13 @@ class KinesisConsumer(multiprocessing.Process):
             answer = next_task()
             self.task_queue.task_done()
             for rec in answer.records:
-                decoded_rec = rec['Data'].decode()
+                data = rec['Data']
+                if self.preprocess:
+                    data = self.preprocess(data)
+                decoded = data.decode()
                 if self.des is not None:
-                    decoded_rec = self.des(decoded_rec)
-                self.result_queue.put(decoded_rec)
+                    decoded = self.des(decoded)
+                self.result_queue.put(decoded)
             time.sleep(1/self.rqs)
             self.task_queue.put(Task(answer.shard_iterator, self.limit))
         return
@@ -70,7 +74,8 @@ class KinesisGenerator(object):
     """Generate records from an AWS Kinesis stream."""
 
     def __init__(self, stream_name, timeout=60, limit=100, max_consumers=50,
-                 des=json.loads, iterator_type="LATEST", rqs=10):
+                 des=json.loads, preprocess=None, iterator_type="LATEST",
+                 rqs=10):
         """Initialize."""
 
         self.stream_name = stream_name
@@ -80,6 +85,7 @@ class KinesisGenerator(object):
         self.timeout = timeout
         self.rqs = rqs
         self.des = des
+        self.preprocess = preprocess
         self.consumers = None
         self.iterator_type = iterator_type
 
@@ -90,7 +96,7 @@ class KinesisGenerator(object):
 
         self.consumers = [
             KinesisConsumer(self.tasks, self.results, self.limit, self.des,
-                            self.rqs/num_consumers)
+                            self.rqs/num_consumers, self.preprocess)
             for _ in range(num_consumers)]
 
         for sid in self.get_shard_iterators():

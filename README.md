@@ -52,6 +52,19 @@ for rec in kg:
     print(rec)
 ```
 
+If you are using the Kinesis generator to read Cloudwatch log events that are being forwarded to a Kinesis stream using a [logs subscription][logsubs] you will need to decompress the Cloudwatch records before deserializing them:
+
+```
+import decompress
+import json
+
+kg = KinesisGenerator("stream_name", rqs=10, des=json.loads,
+                      preprocess=gzip.decompress)
+
+for rec in kg:
+    print(rec)
+```
+
 ## Contact
 
 If you have questions, bug reports, suggestions, etc. please create an issue on the [GitHub project page][github]. PRs are also welcome.
