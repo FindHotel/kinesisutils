@@ -54,6 +54,8 @@ for rec in kg:
 
 If you are using the Kinesis generator to read Cloudwatch log events that are being forwarded to a Kinesis stream using a [logs subscription][logsubs] you will need to decompress the Cloudwatch records before deserializing them:
 
+[logssubs]: http://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/CreateSubscriptionFilter.html
+
 ```
 import decompress
 import json
